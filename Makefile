@@ -5,7 +5,7 @@ SERVICE_NAME := nebula-video-streamer
 GO_FILES := $(wildcard *.go) $(wildcard internal/**/*.go)
 
 # Default target
-.PHONY: all build clean run install-service start stop status logs deploy help
+.PHONY: all build clean run service-install service-start service-stop service-status service-logs service help
 all: build
 
 # Build the application
@@ -13,7 +13,7 @@ build: $(BINARY_NAME)
 
 $(BINARY_NAME): $(GO_FILES)
 	@echo "Building $(BINARY_NAME)..."
-	go build -o $(BINARY_NAME) server.go
+	go build -o $(BINARY_NAME) main.go
 
 # Clean build artifacts
 clean:
@@ -26,7 +26,7 @@ run: build
 	./$(BINARY_NAME)
 
 # Install systemd service
-install-service: build
+service-install: build
 	@if [ "$$(id -u)" -ne 0 ]; then echo "Run with sudo"; exit 1; fi
 	systemctl stop nebula-video-streamer 2>/dev/null || true
 	cp scripts/nebula-video-streamer.service /etc/systemd/system/
@@ -35,25 +35,25 @@ install-service: build
 	@echo "Service installed. Start with: sudo systemctl start nebula-video-streamer"
 
 # Start service
-start:
+service-start:
 	@if [ "$$(id -u)" -ne 0 ]; then echo "Run with sudo"; exit 1; fi
 	systemctl start nebula-video-streamer
 
 # Stop service
-stop:
+service-stop:
 	@if [ "$$(id -u)" -ne 0 ]; then echo "Run with sudo"; exit 1; fi
 	systemctl stop nebula-video-streamer
 
 # Check service status
-status:
+service-status:
 	systemctl status nebula-video-streamer
 
 # View logs
-logs:
+service-logs:
 	journalctl -u nebula-video-streamer -f
 
-# Deploy (build + install + start)
-deploy: build install-service start
+# Service (build + install + start)
+service: build service-install start
 	@echo "Deployed! Access at rtsp://localhost:8554/"
 
 # Show help
@@ -66,11 +66,11 @@ help:
 	@echo "  make clean    - Clean build files"
 	@echo ""
 	@echo "Service (requires sudo):"
-	@echo "  make install-service - Install systemd service"
-	@echo "  make start    - Start service"
-	@echo "  make stop     - Stop service"
-	@echo "  make status   - Check service status"
-	@echo "  make logs     - View service logs"
-	@echo "  make deploy   - Full deployment"
+	@echo "  make service-install - Install systemd service"
+	@echo "  make service-start    - Start service"
+	@echo "  make service-stop     - Stop service"
+	@echo "  make service-status   - Check service status"
+	@echo "  make service-logs     - View service logs"
+	@echo "  make service   - Full deployment"
 
 .DEFAULT_GOAL := help

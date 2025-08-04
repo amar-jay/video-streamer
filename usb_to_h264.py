@@ -17,11 +17,12 @@ streamer = None
 
 class CameraStreamer:
     def __init__(self, 
+                 pipe_path: str,
                  camera_id: int = 0,
                  width: int = 640,
                  height: int = 480,
                  fps: int = 30,
-                 pipe_path: str = "/tmp/camera_stream"):
+                 ):
         """
         Initialize the camera streamer
         
@@ -305,8 +306,8 @@ def main():
                        help='Frame height (default: 480)')
     parser.add_argument('--fps', '-f', type=int, default=30,
                        help='Target FPS (default: 30)')
-    parser.add_argument('--pipe', '-p', type=str, default='/home/amarjay/Desktop/code/video-streamer/camera_stream.h264',
-                       help='Named pipe path (default: /home/amarjay/Desktop/code/video-streamer/camera_stream.h264)')
+    parser.add_argument('--pipe', '-p', type=str, default='/tmp/camera_stream',
+                       help='Named pipe path (default: /tmp/camera_stream)')
     
     args = parser.parse_args()
     

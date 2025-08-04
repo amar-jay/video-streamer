@@ -4,28 +4,41 @@ Simple Go video streaming server supporting RTSP and UDP protocols.
 
 ## Quick Start
 
+1. Write to `camera_stream.h264` file using `ffmpeg`:
 ```bash
-# RTSP streaming
-go run server.go
-
-# UDP streaming  
-go run udp_h264_streamer.go camera_stream.h264
+python video_writer.py
 ```
 
-## View Streams
-
-**RTSP:**
-```bash
-ffplay rtsp://localhost:8554/stream
-```
-
-**UDP:**
-```bash
-ffplay -f h264 -framerate 30 udp://localhost:9999
-```
-
-## Build
+2. Start the server:
 ```bash
 make build
-make run
+./nebula-video-streamer --help
+```
+
+3. Stream the video:
+```bash
+ffplay -loglevel verbose rtsps://localhost:8554/
+```
+
+
+## Service Management
+**Install Service**
+```bash
+make service-install
+```
+**Start Service**
+```bash
+make service-start
+```
+**Stop Service**
+```bash
+make service-stop
+```
+**Check Service Status**
+```bash
+make service-status
+```
+**View Service Logs**
+```bash
+make service-logs
 ```

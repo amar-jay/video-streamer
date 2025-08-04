@@ -34,8 +34,8 @@ class VideoWriter:
         self.rtsp_process = None
         self._running = False
 
-        if not os.path.exists(rtsp_server):
-            raise ValueError(f"RTSP server path does not exist: {rtsp_server}")
+        # if not os.path.exists(rtsp_server):
+        #     raise ValueError(f"RTSP server path does not exist: {rtsp_server}")
         self.rtsp_server = rtsp_server
 
         if self.setup_h264_encoder():
@@ -211,8 +211,8 @@ def main():
         "--pipe",
         "-p",
         type=str,
-        default="/home/amarjay/Desktop/code/video-streamer/camera_stream.h264",
-        help="Named pipe path (default: /home/amarjay/Desktop/code/video-streamer/camera_stream.h264)",
+        default="/tmp/camera_stream",
+        help="Named pipe path (default: /tmp/camera_stream)",
     )
 
     args = parser.parse_args()
