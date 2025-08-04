@@ -1,0 +1,38 @@
+[Unit]
+Description=Video Streamer RTSP Server
+Documentation=https://github.com/your-repo/video-streamer
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=amarjay
+Group=amarjay
+WorkingDirectory=/home/amarjay/Desktop/code/video-streamer
+ExecStart=/home/amarjay/Desktop/code/video-streamer/video-streamer --input /home/amarjay/Downloads/demo.mp4
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=video-streamer
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/home/amarjay/Desktop/code/video-streamer
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=32768
+
+# Environment
+Environment=HOME=/home/amarjay
+Environment=USER=amarjay
+
+[Install]
+WantedBy=multi-user.target

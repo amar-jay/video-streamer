@@ -1,53 +1,244 @@
-# Video Streamer - Build TODO 🎯
+# Video Streamer
 
-Go-based RTSP video streaming server with H.264 encoding via GStreamer.
+Go-based RTSP video streaming server that streams video files over RTSP protocol.
 
-## 📋 Main TODO List
+## ✨ Features
 
-### 1. Project Setup
-- [ ] Create Go module: `go mod init video-streamer`
-- [ ] Add dependencies: `gortsplib/v4`, `pion/rtp`
-- [ ] Create directories: `cmd/server/`, `internal/{config,rtsp,rtp,stream}/`
-- [ ] Basic Makefile
-
-### 2. Config (`internal/config/config.go`)
-- [ ] Config struct with RTSP port, video params, GStreamer settings
-- [ ] Command-line flags parsing
-- [ ] SDP generation method
-- [ ] GStreamer pipeline builder
-
-### 3. RTP Handler (`internal/rtp/handler.go`)
-- [ ] Pion RTP integration
-- [ ] H.264 NAL unit packetization
-- [ ] FU-A fragmentation for large packets
-- [ ] Timestamp/sequence management
-
-### 4. RTSP Server (`internal/rtsp/server.go`)
-- [ ] gortsplib server setup
-- [ ] Handler methods: OnDescribe, OnSetup, OnPlay
-- [ ] Session management
-- [ ] H.264 media format configuration
-
-### 5. Stream Manager (`internal/stream/manager.go`)
-- [ ] GStreamer process launcher
-- [ ] UDP listener for RTP packets
-- [ ] Forward packets to RTSP clients
-- [ ] Multi-client support
-
-### 6. Main App (`cmd/server/main.go`)
-- [ ] CLI interface
-- [ ] Component initialization
-- [ ] Graceful shutdown
-- [ ] Error handling
-
-### 7. Testing
-- [ ] Build with `make build`
-- [ ] Test with VLC: `vlc rtsp://localhost:8554/stream`
-- [ ] Unit tests for core components
+- 🎥 Stream video files via RTSP protocol
+- 🔧 CLI interface with customizable parameters
+- 🚀 systemd service support for production deployment
+- �️ Security hardened service configuration
+- 📊 Comprehensive logging and monitoring
+- 🔄 Automatic restart on failure
 
 ## 🚀 Quick Start
 
+### Development Mode
 ```bash
+# Build and run locally
+make build
+make run
+
+# Or with custom parameters
+make run-custom INPUT=/path/to/video.mp4 RTSP_ADDR=:9554
+```
+
+### Production Deployment
+```bash
+# Deploy as systemd service
+sudo make deploy
+
+# Monitor service
+make logs
+make status-service
+```
+
+## 📦 Installation
+
+### Prerequisites
+- Go 1.24.2 or later
+- Linux system with systemd (for service deployment)
+
+### Build from Source
+```bash
+git clone <repository-url>
+cd video-streamer
+make build
+```
+
+## 🔧 Configuration
+
+### Command Line Options
+```bash
+./video-streamer [OPTIONS]
+
+Options:
+  --input, -i     Path to input video file (default: "/home/amarjay/Downloads/demo.mp4")
+  --rtsp-address  RTSP server address (default: ":8554")
+  --udp-rtp-address   UDP RTP address (default: ":8000")
+  --udp-rtcp-address  UDP RTCP address (default: ":8001")
+  --help, -h      Show help
+```
+
+### Examples
+```bash
+# Basic usage
+./video-streamer --input /path/to/video.mp4
+
+# Custom ports
+./video-streamer --input /path/to/video.mp4 --rtsp-address :9554
+
+# Bind to specific interface
+./video-streamer --rtsp-address 192.168.1.100:8554
+```
+
+## 🎯 Makefile Commands
+
+### Development
+```bash
+make build          # Build the application
+make clean          # Clean build artifacts
+make run            # Run locally
+make test           # Run tests
+make fmt            # Format code
+make lint           # Lint code
+make deps           # Update dependencies
+make dev-setup      # Complete development setup
+```
+
+### Service Management (requires sudo)
+```bash
+sudo make install-service   # Install systemd service
+sudo make uninstall-service # Uninstall systemd service
+sudo make start-service     # Start service
+sudo make stop-service      # Stop service
+sudo make restart-service   # Restart service
+sudo make deploy            # Build + install + start
+```
+
+### Monitoring
+```bash
+make status-service  # Check service status
+make logs           # Follow logs in real-time
+make logs-recent    # View recent logs
+```
+
+## 🔧 systemd Service
+
+The application can be deployed as a systemd service for production use.
+
+### Service Installation
+```bash
+# Build the application
+make build
+
+# Install and start service
+sudo make deploy
+
+# Check service status
+sudo systemctl status video-streamer
+```
+
+### Service Management
+```bash
+# Control service
+sudo systemctl start video-streamer
+sudo systemctl stop video-streamer
+sudo systemctl restart video-streamer
+
+# Enable/disable auto-start
+sudo systemctl enable video-streamer
+sudo systemctl disable video-streamer
+
+# View logs
+sudo journalctl -u video-streamer -f
+```
+
+### Service Configuration
+The service is installed to `/etc/systemd/system/video-streamer.service`.
+
+To customize configuration:
+1. Edit the service file: `sudo nano /etc/systemd/system/video-streamer.service`
+2. Modify the `ExecStart` line with your desired parameters
+3. Reload and restart: `sudo systemctl daemon-reload && sudo systemctl restart video-streamer`
+
+Example custom configuration:
+```ini
+ExecStart=/home/amarjay/Desktop/code/video-streamer/video-streamer \
+  --input /media/videos/stream.mp4 \
+  --rtsp-address :9554
+```
+
+### Security Features
+The systemd service includes security hardening:
+- Runs as non-root user
+- Protected system directories
+- Private temporary directory
+- Resource limits
+- No new privileges
+
+## 📡 Accessing the Stream
+
+Once running, access your RTSP stream at:
+
+### Local Access
+```
+rtsp://localhost:8554/
+```
+
+### Remote Access
+```
+rtsp://YOUR_SERVER_IP:8554/
+```
+
+### Test with Media Players
+```bash
+# VLC
+vlc rtsp://localhost:8554/
+
+# FFplay
+ffplay rtsp://localhost:8554/
+
+# GStreamer
+gst-launch-1.0 rtspsrc location=rtsp://localhost:8554/ ! decodebin ! autovideosink
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Service won't start:**
+1. Check if binary exists: `ls -la video-streamer`
+2. Verify video file permissions: `ls -la /path/to/video.mp4`
+3. View logs: `sudo journalctl -u video-streamer -f`
+
+**Permission issues:**
+- Ensure user has read access to video file
+- Check working directory permissions
+
+**Network issues:**
+- Verify ports aren't in use: `sudo netstat -tlnp | grep :8554`
+- Check firewall settings for remote access
+
+**Video file issues:**
+- Ensure video file is readable and valid
+- Check supported formats (H.264 recommended)
+
+### Debug Mode
+```bash
+# Build with debug symbols
+make build-debug
+
+# Run with verbose logging
+./video-streamer --input /path/to/video.mp4 --debug
+```
+
+## 🗂️ Project Structure
+
+```
+.
+├── server.go                  # Main application
+├── internal/
+│   ├── server/
+│   │   └── handler.go         # RTSP server handler
+│   ├── streamer/
+│   │   └── streamer.go        # File streaming logic
+│   └── utils/
+│       └── video_utils.go     # Video utilities
+├── video-streamer.service     # systemd service file
+├── install-service.sh         # Service installation script
+├── uninstall-service.sh       # Service removal script
+├── Makefile                   # Build automation
+└── README.md                  # This file
+```
+
+## � License
+
+[Add your license information here]
+
+## 🤝 Contributing
+
+[Add contributing guidelines here]
 # 1. Setup
 mkdir video-streamer && cd video-streamer
 go mod init video-streamer

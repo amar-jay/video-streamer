@@ -24,7 +24,7 @@ func (r *mp4FileStreamer) Initialize() error {
 	}
 	// Convert MP4 to TS using FFmpeg save to /tmp using input file name with .ts extension
 	inputPath := r.f.Name()
-	outputPath := strings.TrimSuffix(inputPath, filepath.Ext(inputPath)) + ".ts"
+	outputPath := filepath.Join(os.TempDir(), strings.TrimSuffix(filepath.Base(inputPath), ".mp4")+".ts")
 	err := utils.MP4ToTS(inputPath, outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to convert MP4 to TS: %w", err)

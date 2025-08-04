@@ -5,23 +5,12 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-
-	"github.com/bluenviron/mediacommon/v2/pkg/formats/pmp4"
 )
 
 // H264Parameters holds SPS and PPS data
 type H264Parameters struct {
 	SPS []byte
 	PPS []byte
-}
-
-func FindH264Track(presentation *pmp4.Presentation) (*pmp4.Track, error) {
-	for _, track := range presentation.Tracks {
-		if track.Codec.IsVideo() {
-			return track, nil
-		}
-	}
-	return nil, fmt.Errorf("H264 track not found")
 }
 
 // ExtractH264Parameters extracts SPS and PPS from a video file using FFmpeg
@@ -137,4 +126,31 @@ func parseH264Parameters(data []byte) (*H264Parameters, error) {
 	}
 
 	return params, nil
+}
+
+func MP4ToTS(inputPath, outputPath string) error {
+	// Build FFmpeg command with additional parameters to ensure SPS/PPS are included
+	// and force the first frame to be an IDR frame
+	cmd := exec.Command("ffmpeg",
+		"-i", inputPath, // Input file
+		"-c:v", "libx264", // Re-encode video to ensure proper frame order
+		"-preset", "ultrafast", // Fast encoding
+		"-tune", "zerolatency", // Low latency tuning
+		"-x264-params", "keyint=30:min-keyint=30", // Force keyframes every 30 frames
+		"-force_key_frames", "expr:gte(t,0)", // Force a keyframe at the start
+		"-bsf:v", "h264_mp4toannexb", // Convert H.264 bitstream from MP4 to Annex B format
+		"-avoid_negative_ts", "make_zero", // Avoid negative timestamps
+		"-fflags", "+genpts", // Generate presentation timestamps
+		"-f", "mpegts", // Output format
+		"-y",       // Overwrite output file
+		outputPath, // Output file
+	)
+
+	// Run the command
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ffmpeg error: %v\nOutput: %s", err, string(output))
+	}
+
+	return nil
 }
