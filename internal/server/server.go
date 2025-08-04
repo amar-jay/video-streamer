@@ -57,6 +57,8 @@ func StartServer(videoFilePath, rtspAddress, udpRTPAddress, udpRTCPAddress strin
 			log.Printf("ERROR: Failed to extract H.264 parameters: %v", err)
 			// Fallback to basic configuration without SPS/PPS
 			h264Params = nil
+		} else {
+			log.Printf("Successfully extracted H.264 parameters using FFmpeg")
 		}
 	}
 
