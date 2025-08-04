@@ -1,11 +1,11 @@
 package streamer
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"matek-video-streamer/internal/utils"
 	"os"
 	"time"
 
@@ -46,15 +46,6 @@ func (r *mjpegtsFileStreamer) Close() error {
 	return nil
 }
 
-func randUint32() (uint32, error) {
-	var b [4]byte
-	_, err := rand.Read(b[:])
-	if err != nil {
-		return 0, err
-	}
-	return uint32(b[0])<<24 | uint32(b[1])<<16 | uint32(b[2])<<8 | uint32(b[3]), nil
-}
-
 func findTrack(r *mpegts.Reader) (*mpegts.Track, error) {
 	for _, track := range r.Tracks() {
 		if _, ok := track.Codec.(*mpegts.CodecH264); ok {
@@ -62,20 +53,6 @@ func findTrack(r *mpegts.Reader) (*mpegts.Track, error) {
 		}
 	}
 	return nil, fmt.Errorf("H264 track not found")
-}
-
-func (r *mjpegtsFileStreamer) initialize() error {
-	// open a file in MPEG-TS format
-	var err error
-	r.f, err = os.Open("myvideo.ts")
-	if err != nil {
-		return err
-	}
-
-	// in a separate routine, route frames from file to ServerStream
-	go r.run()
-
-	return nil
 }
 
 func (r *mjpegtsFileStreamer) close() {
@@ -89,7 +66,7 @@ func (r *mjpegtsFileStreamer) run() {
 		panic(err)
 	}
 
-	randomStart, err := randUint32()
+	randomStart, err := utils.RandUint32()
 	if err != nil {
 		panic(err)
 	}
@@ -178,25 +155,6 @@ func (r *mjpegtsFileStreamer) run() {
 				firstTime = time.Now()
 				firstDTS = &dts
 			}
-
-			// Log frame type for debugging
-			// frameType := "Unknown"
-			// if len(au) > 0 && len(au[0]) > 0 {
-			// 	nalType := au[0][0] & 0x1F
-			// 	switch nalType {
-			// 	case 1:
-			// 		frameType = "P-frame"
-			// 	case 5:
-			// 		frameType = "IDR"
-			// 	case 7:
-			// 		frameType = "SPS"
-			// 	case 8:
-			// 		frameType = "PPS"
-			// 	default:
-			// 		frameType = fmt.Sprintf("NAL-%d", nalType)
-			// 	}
-			// }
-			// log.Printf("Sending %s with pts=%d dts=%d", frameType, pts, dts)
 
 			// wrap the access unit into RTP packets
 			var packets []*rtp.Packet
