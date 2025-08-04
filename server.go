@@ -12,13 +12,13 @@ import (
 
 func main() {
 	app := &cli.App{
-		Name:  "video-streamer",
-		Usage: "RTSP video streaming server",
+		Name:  "nebula-video-streamer",
+		Usage: "RTSP video streamer",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:     "input",
 				Aliases:  []string{"i"},
-				Value:    "/home/amarjay/Downloads/demo.mp4",
+				Value:    "/home/amarjay/Desktop/code/video-streamer/camera_stream.h264",
 				Usage:    "Path to the input video file",
 				Required: false,
 			},
@@ -46,7 +46,7 @@ func main() {
 				return fmt.Errorf("input file does not exist: %s", inputFile)
 			}
 
-			log.Printf("Starting video streamer with input file: %s", inputFile)
+			log.Printf("Starting video streamer with input: %s", inputFile)
 			return server.StartServer(inputFile, c.String("rtsp-address"), c.String("udp-rtp-address"), c.String("udp-rtcp-address"))
 		},
 	}

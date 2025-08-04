@@ -4,8 +4,8 @@
 
 set -e
 
-SERVICE_NAME="video-streamer"
-SERVICE_FILE="video-streamer.service"
+SERVICE_NAME="nebula-video-streamer"
+SERVICE_FILE="nebula-video-streamer.service"
 SYSTEMD_DIR="/etc/systemd/system"
 
 echo "🗑️  Uninstalling Video Streamer systemd service..."

@@ -305,8 +305,8 @@ def main():
                        help='Frame height (default: 480)')
     parser.add_argument('--fps', '-f', type=int, default=30,
                        help='Target FPS (default: 30)')
-    parser.add_argument('--pipe', '-p', type=str, default='/tmp/camera_stream',
-                       help='Named pipe path (default: /tmp/camera_stream)')
+    parser.add_argument('--pipe', '-p', type=str, default='/home/amarjay/Desktop/code/video-streamer/camera_stream.h264',
+                       help='Named pipe path (default: /home/amarjay/Desktop/code/video-streamer/camera_stream.h264)')
     
     args = parser.parse_args()
     

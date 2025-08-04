@@ -18,9 +18,6 @@ Go-based RTSP video streaming server that streams video files over RTSP protocol
 # Build and run locally
 make build
 make run
-
-# Or with custom parameters
-make run-custom INPUT=/path/to/video.mp4 RTSP_ADDR=:9554
 ```
 
 ### Production Deployment
@@ -30,7 +27,7 @@ sudo make deploy
 
 # Monitor service
 make logs
-make status-service
+make status
 ```
 
 ## 📦 Installation
@@ -38,6 +35,16 @@ make status-service
 ### Prerequisites
 - Go 1.24.2 or later
 - Linux system with systemd (for service deployment)
+- TLS certificate files (`server.crt` and `server.key`) for secure connections
+
+### Generate TLS Certificates (if needed)
+```bash
+# Generate private key
+openssl genrsa -out server.key 2048
+
+# Generate self-signed certificate
+openssl req -new -x509 -sha256 -key server.key -out server.crt -days 3650
+```
 
 ### Build from Source
 ```bash
@@ -79,28 +86,16 @@ Options:
 make build          # Build the application
 make clean          # Clean build artifacts
 make run            # Run locally
-make test           # Run tests
-make fmt            # Format code
-make lint           # Lint code
-make deps           # Update dependencies
-make dev-setup      # Complete development setup
 ```
 
 ### Service Management (requires sudo)
 ```bash
-sudo make install-service   # Install systemd service
-sudo make uninstall-service # Uninstall systemd service
-sudo make start-service     # Start service
-sudo make stop-service      # Stop service
-sudo make restart-service   # Restart service
-sudo make deploy            # Build + install + start
-```
-
-### Monitoring
-```bash
-make status-service  # Check service status
-make logs           # Follow logs in real-time
-make logs-recent    # View recent logs
+make install-service # Install systemd service
+make start          # Start service
+make stop           # Stop service
+make status         # Check service status
+make logs           # View service logs
+make deploy         # Build + install + start
 ```
 
 ## 🔧 systemd Service
