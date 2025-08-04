@@ -15,7 +15,7 @@ import cv2
 
 
 class VideoWriter:
-    def __init__(self, source: str, width: int, height: int, fps: int, rtsp_server: str):
+    def __init__(self, source: str, width: int, height: int, fps: int):
         """
         Initialize the VideoWriter
 
@@ -31,33 +31,15 @@ class VideoWriter:
         self.fps = fps
         self.writer = None
         self.ffmpeg_process = None
-        self.rtsp_process = None
         self._running = False
-
-        # if not os.path.exists(rtsp_server):
-        #     raise ValueError(f"RTSP server path does not exist: {rtsp_server}")
-        self.rtsp_server = rtsp_server
 
         if self.setup_h264_encoder():
             print("H.264 encoder setup successfully.")
-            time.sleep(1)  # Give some legroom for the encoder to start
-            if self.setup_rtsp_server():
-                print("RTSP server started successfully.")
-                time.sleep(1)  # Give some legroom for the RTSP server to start
-            else:
-                print("Failed to start RTSP server.")
-                self.close()
-                sys.exit(1)
         else:
             print("Failed to set up H.264 encoder.")
+           
 
-        # Remove existing pipe if it exists
-        if os.path.exists(self.pipe_path):
-            os.unlink(self.pipe_path)
-
-        # Create named pipe
-        os.mkfifo(self.pipe_path)
-
+        self._recreate_pipe()
         self._running = True
 
     def setup_h264_encoder(self) -> bool:
@@ -114,50 +96,67 @@ class VideoWriter:
             print(f"Error setting up H.264 encoder: {e}")
             return False
 
-    def setup_rtsp_server(self) -> bool:
-        """Setup RTSP server process"""
+    def restart_h264_encoder(self) -> bool:
+        """Restart the H.264 encoder process for live streaming"""
+        print("Restarting H.264 encoder for live stream (clearing pipe buffer)...")
+        
+        # Clean up existing process if any
+        if self.ffmpeg_process:
+            try:
+                if self.ffmpeg_process.stdin:
+                    self.ffmpeg_process.stdin.close()
+                self.ffmpeg_process.terminate()
+                self.ffmpeg_process.wait(timeout=2)
+            except:
+                pass
+            self.ffmpeg_process = None
+        
+        # For live streaming: recreate the pipe to clear any buffered data
+        self._recreate_pipe()
+        
+        # Restart the encoder
+        return self.setup_h264_encoder()
+
+    def _recreate_pipe(self):
+        """Recreate the named pipe to clear buffered data for live streaming"""
         try:
-            # Command to start the RTSP server
-            if not self.rtsp_server:
-                print("RTSP server path is not set.")
-                self.close()
-                return False
-
-            print("Starting RTSP server...")
-            self.rtsp_process = subprocess.Popen(
-                [self.rtsp_server],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                shell=True,
-            )
-
-            return True
-
+            # Remove existing pipe
+            if os.path.exists(self.pipe_path):
+                os.unlink(self.pipe_path)
+            
+            # Create fresh pipe
+            os.mkfifo(self.pipe_path)
+            print("Live stream pipe recreated to clear buffer")
         except Exception as e:
-            print(f"Error starting RTSP server: {e}")
-            return False
+            print(f"Warning: Could not recreate pipe: {e}")
 
     def write(self, frame: np.ndarray) -> bool:
         try:
+            # Check if encoder needs to be started or restarted
+            if not self.ffmpeg_process or self.ffmpeg_process.poll() is not None:
+                print("Starting/restarting encoder for live stream...")
+                if not self.restart_h264_encoder():
+                    print("Failed to restart H.264 encoder")
+                    return False
+
             # Send raw frame data to ffmpeg
             if self.ffmpeg_process and self.ffmpeg_process.stdin:
                 frame_data = frame.tobytes()
-                # frame_size = len(frame_data)
 
                 self.ffmpeg_process.stdin.write(frame_data)
                 self.ffmpeg_process.stdin.flush()
 
-                # self.frame_count += 1
-                # last_frame_time = current_time
                 return True
 
         except BrokenPipeError:
-            print("ffmpeg process ended")
-            self.close()
+            print("Live stream client disconnected - will restart encoder to clear buffer")
+            # For live streaming, we restart to clear the pipe buffer
+            self.ffmpeg_process = None
             return False
         except OSError as e:
-            print(f"Error writing to ffmpeg: {e}")
-            self.close()
+            print(f"Live stream write error: {e} - will restart encoder")
+            # For live streaming, restart to maintain continuity
+            self.ffmpeg_process = None
             return False
 
     def close(self):
@@ -173,6 +172,7 @@ class VideoWriter:
             except subprocess.TimeoutExpired:
                 self.ffmpeg_process.kill()
             except Exception:
+
                 pass
 
         # Cleanup pipe
@@ -181,7 +181,7 @@ class VideoWriter:
         self._running = False
 
 
-def signal_handler(_):
+def signal_handler(*_):
     """Handle Ctrl+C gracefully"""
     print("\nReceived interrupt signal...")
     streamer = signal_handler.streamer
@@ -203,9 +203,6 @@ def main():
     )
     parser.add_argument(
         "--fps", "-f", type=int, default=30, help="Target FPS (default: 30)"
-    )
-    parser.add_argument(
-        "--server", "-s", type=str, default="/home/amarjay/Desktop/code/video-streamer/nebula-video-streamer", help="RTSP server address bin path (default: nebula-video-server)"
     )
     parser.add_argument(
         "--pipe",
@@ -231,7 +228,6 @@ def main():
         width=width,
         height=height,
         fps=fps,
-        rtsp_server=args.server,
     )
     signal_handler.streamer = streamer
 
@@ -250,6 +246,10 @@ def main():
     print(f"ffplay -f mpegts -fflags nobuffer -flags low_delay {args.pipe}")
     print("# or with VLC:")
     print(f"vlc {args.pipe}")
+    print("\nNote: Live stream will restart encoder when clients connect/disconnect to ensure current feed.")
+
+    failed_writes = 0
+    max_consecutive_failures = 10  # Allow some failures before extra logging
 
     while streamer._running:
         ret, frame = cap.read()
@@ -270,14 +270,18 @@ def main():
         # Convert frame to BGR format
         frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
-        # Write frame to pipe
+        # Write frame to pipe (single write for live streaming)
         if not streamer.write(frame):
-            print("Failed to write frame to pipe")
-            break
-
-        if not streamer.write(frame):
-            print("Failed to write frame to pipe")
-            break
+            failed_writes += 1
+            if failed_writes <= max_consecutive_failures or failed_writes % 50 == 0:
+                print(f"Live stream write failed (attempt {failed_writes}) - continuing...")
+            # Continue to next frame for live streaming
+            continue
+        else:
+            # Reset failure counter on successful write
+            if failed_writes > 0:
+                print(f"Live stream recovered after {failed_writes} failed attempts")
+                failed_writes = 0
 
         # break on q
         if cv2.waitKey(1) & 0xFF == ord("q"):

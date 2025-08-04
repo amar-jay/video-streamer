@@ -78,7 +78,18 @@ func (r *fileStreamer) run() {
 		// setup MPEG-TS parser
 		mr := &mpegts.Reader{R: r.f}
 		err = mr.Initialize()
+		// if error is end of file, try to connect again
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Printf("file has ended, reconnecting")
+				// close the file and reopen it
+				r.f.Close()
+				r.f, err = os.Open(r.pipeName)
+				if err != nil {
+					panic(err)
+				}
+				continue
+			}
 			panic(err)
 		}
 
