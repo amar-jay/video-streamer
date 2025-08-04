@@ -29,7 +29,7 @@ run: build
 install-service: build
 	@if [ "$$(id -u)" -ne 0 ]; then echo "Run with sudo"; exit 1; fi
 	systemctl stop nebula-video-streamer 2>/dev/null || true
-	cp nebula-video-streamer.service /etc/systemd/system/
+	cp scripts/nebula-video-streamer.service /etc/systemd/system/
 	systemctl daemon-reload
 	systemctl enable nebula-video-streamer
 	@echo "Service installed. Start with: sudo systemctl start nebula-video-streamer"
