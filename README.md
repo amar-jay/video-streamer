@@ -1,6 +1,6 @@
 # Video Streamer
 
-Simple Go video streaming server supporting RTSP and UDP protocols.
+Simple Go video streaming server supporting H264 over RTSP and UDP protocols.
 
 ## Quick Start
 
